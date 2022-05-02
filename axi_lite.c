@@ -166,6 +166,12 @@ int main() {
             axi_lite_test_reg_addr[0], axi_lite_test_reg_addr[1],
             axi_lite_test_reg_addr[2], axi_lite_test_reg_addr[3]);
             break;
+        
+        case 'r':
+            printf("reading [0]:0x%x, [1]:0x%x, [2]:0x%x, [3]:0x%x\r\n",
+            axi_lite_test_reg_addr[0], axi_lite_test_reg_addr[1],
+            axi_lite_test_reg_addr[2], axi_lite_test_reg_addr[3]);
+            break;
 
         case 'q':
             quit = 1;
