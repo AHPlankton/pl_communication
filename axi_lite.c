@@ -141,6 +141,7 @@ int main() {
     }
 
     int i = 0;
+    int v = 0x0;
     while(1){
         printf("waiting for input...(i, t, q)\r\n");
         char c = getchar();
@@ -165,6 +166,16 @@ int main() {
             printf("writing [0]:0x%x, [1]:0x%x, [2]:0x%x, [3]:0x%x\r\n",
             axi_lite_test_reg_addr[0], axi_lite_test_reg_addr[1],
             axi_lite_test_reg_addr[2], axi_lite_test_reg_addr[3]);
+            break;
+
+        case 'v':
+            axi_lite_test_reg_addr[0] = v;
+            if(0 == v){
+                v = 1;
+            }else{
+                v = 0;
+            }
+            printf("writing [0]:0x%x\r\n", v);
             break;
         
         case 'r':
