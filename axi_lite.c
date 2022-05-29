@@ -47,8 +47,10 @@ struct addr_cfg{
 
 static struct addr_cfg addrCfg = {0};
 static char* matList = 0;
+static char* matListQR = 0;
+static char* matListLong = 0;
 
-static int loadMat()
+static char* loadMat(char* fileName, int* size)
 {
     struct stat st = {0};
     int nRead = 0;
@@ -56,11 +58,12 @@ static int loadMat()
     char* fileContent = 0;
     int i, j;
     int countCtrl = 0;
+    char* buffer = 0;
     int matSize = 0;
 
-    printf("loading mat\r\n");
+    printf("loading mat %s\r\n", fileName);
 
-    fd = open("mat.txt", O_RDONLY);
+    fd = open(fileName, O_RDONLY);
 
     if(fd <= 0)
     {
@@ -68,7 +71,7 @@ static int loadMat()
         return 0;
     }
 
-    if(stat("mat.txt", &st) < 0)
+    if(stat(fileName, &st) < 0)
         return 0;
 
     fileContent = malloc(st.st_size);
@@ -80,7 +83,7 @@ static int loadMat()
     }
     else
     {
-        printf("read %d bytes from mat.txt\r\n", nRead);
+        printf("read %d bytes from %s\r\n", nRead, fileName);
     }
 
     for(i = 0; i < nRead; ++i){
@@ -90,18 +93,21 @@ static int loadMat()
     }
 
     matSize = nRead - countCtrl;
-    matList = malloc(matSize);
+    if(0 != size){
+        *size = matSize;
+    }
+    buffer = malloc(matSize);
 
     for(i = 0, j = 0; i < nRead; ++i){
         if('0' == fileContent[i] || '1' == fileContent[i]){
-            matList[j] = fileContent[i];
+            buffer[j] = fileContent[i];
             ++j;
         }
     }
 
     free(fileContent);
     close(fd);
-    return matSize;
+    return buffer;
 }
 
 static int loadCfg()
@@ -189,17 +195,27 @@ static int loadCfg()
 int main() {
 	int* addrUser = 0;
     int matSize = 0;
+    int matSizeQR = 0;
+    int matSizeLong = 0;
     int packetSize = 0;
 
-	if(loadCfg() <= 0)
-	{
+	if(loadCfg() <= 0){
 		printf("load cfg fail\r\n");
 		return 1;
 	}
 
-    matSize = loadMat();
-    if(matSize <= 0)
-    {
+    matList = loadMat("mat.txt", &matSize);
+    if(0 == matList){
+        return 1;
+    }
+
+    matListQR = loadMat("matQR.txt", &matSizeQR);
+    if(0 == matListQR){
+        return 1;
+    }
+
+    matListLong = loadMat("matL.txt", &matSizeLong);
+    if(0 == matListLong){
         return 1;
     }
 
@@ -283,10 +299,16 @@ int main() {
             send(dma_reg_addr, packetSize);
             break;
 
+        case 'a':
+            packetSize = load_data(addrUser, matListQR, matSizeQR);
+            break;
+
+        case 'b':
+            packetSize = load_data(addrUser, matListLong, matSizeLong);
+            break;
+
         case 'c':
-            axi_lite_test_reg_addr[0] = 0;
             sendLoop(dma_reg_addr, packetSize);
-            axi_lite_test_reg_addr[0] = 1;
             break;
 
         default:
@@ -435,7 +457,7 @@ int load_data(void* adress, char* matData, int matSize)
             sig = 2;
         }
 
-        addr[addrIdx] = (sig << 22) | (size << 16);
+        addr[addrIdx + 1] = (sig << 22) | (size << 16);
 
         for(j = 0; j < columnHeight; ++j){
             if(matIdx >= matSize){
@@ -450,7 +472,7 @@ int load_data(void* adress, char* matData, int matSize)
                 inkValue = 1;
             
             ++matIdx;
-            addr[addrIdx + 1] |= inkValue << (columnHeight - j - 1);
+            addr[addrIdx] |= inkValue << (columnHeight - j - 1);
         }
 
         addrIdx += 2;
